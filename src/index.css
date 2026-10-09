@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Themes: every color in the UI comes from these tokens (RGB triplets). */
+:root {
+  --bg: 244 248 246;
+  --surface: 255 255 255;
+  --tint: 225 237 232;
+  --ink: 17 31 28;
+  --muted: 79 99 93;
+  --line: 208 221 216;
+  --brand: 30 74 67;
+  --on-brand: 255 255 255;
+  --accent: 247 201 72;
+}
+
+.dark {
+  --bg: 13 23 21;
+  --surface: 21 35 32;
+  --tint: 29 48 44;
+  --ink: 238 245 242;
+  --muted: 160 180 173;
+  --line: 44 66 61;
+  --brand: 247 201 72;
+  --on-brand: 17 31 28;
+  --accent: 247 201 72;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-bg font-body text-ink antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full px-6 py-3 text-base font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/60;
+  }
+  .btn-primary {
+    @apply bg-brand text-on-brand hover:opacity-90;
+  }
+  .btn-ghost {
+    @apply border-2 border-ink/20 text-ink hover:border-ink/50;
+  }
+  .wrap {
+    @apply mx-auto w-full max-w-6xl px-5;
+  }
+}
