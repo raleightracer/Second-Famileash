@@ -1,4 +1,4 @@
-# Second Leash: dog rescue website
+# Second FamiLeash: Dog Rescue Website
 
 React + TypeScript + Tailwind CSS (Vite), two pages: Home and About.
 
