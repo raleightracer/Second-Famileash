@@ -14,8 +14,23 @@ const arches = [
 const peso = (n: number) => `₱${n.toLocaleString("en-PH")}`;
 
 export default function Home() {
-  const [selected, setSelected] = useState(1);
-  const gift = gifts[selected];
+  const [selected, setSelected] = useState<number | "custom">(2);
+  const [custom, setCustom] = useState("");
+
+  // Preset gift, or null when the donor is typing their own amount
+  const gift = selected === "custom" ? null : gifts[selected];
+  const customAmount = Math.floor(Number(custom));
+  const amount = gift ? gift.php : customAmount > 0 ? customAmount : 0;
+  const description = gift
+    ? `${peso(gift.php)} ${gift.text.charAt(0).toLowerCase() + gift.text.slice(1)}`
+    : amount > 0
+      ? `${peso(amount)} goes to food, medicine, and surgery for the dogs in our care.`
+      : "Type any amount. Every peso goes to food, medicine, and surgery for the dogs in our care.";
+
+  const choiceClass = (active: boolean) =>
+    `rounded-2xl border-2 px-4 py-4 text-xl font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/70 ${
+      active ? "border-transparent bg-on-brand text-brand" : "border-on-brand/30 hover:border-on-brand/70"
+    }`;
 
   return (
     <>
@@ -135,32 +150,60 @@ export default function Home() {
               We are funded by individual donors. Every peso goes to food, medicine, and surgery for the dogs in our care.
             </p>
 
-            <div className="mt-8 grid grid-cols-2 gap-3" role="group" aria-label="Donation amount">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3" role="group" aria-label="Donation amount">
               {gifts.map((g, i) => (
                 <button
                   key={g.php}
                   type="button"
                   aria-pressed={i === selected}
                   onClick={() => setSelected(i)}
-                  className={`rounded-2xl border-2 px-4 py-4 text-xl font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/70 ${
-                    i === selected
-                      ? "border-transparent bg-on-brand text-brand"
-                      : "border-on-brand/30 hover:border-on-brand/70"
-                  }`}
+                  className={choiceClass(i === selected)}
                 >
                   {peso(g.php)}
                 </button>
               ))}
+              <button
+                type="button"
+                aria-pressed={selected === "custom"}
+                onClick={() => setSelected("custom")}
+                className={choiceClass(selected === "custom")}
+              >
+                Custom
+              </button>
             </div>
 
+            {selected === "custom" && (
+              <div className="mt-4">
+                <label htmlFor="custom-amount" className="text-sm font-semibold opacity-85">
+                  Your amount
+                </label>
+                <div className="mt-2 flex items-center rounded-2xl border-2 border-on-brand/30 px-4 focus-within:border-on-brand/70 focus-within:ring-4 focus-within:ring-accent/70">
+                  <span className="text-xl font-bold" aria-hidden="true">₱</span>
+                  <input
+                    id="custom-amount"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    step={1}
+                    placeholder="0"
+                    autoFocus
+                    value={custom}
+                    onChange={(e) => setCustom(e.target.value)}
+                    className="w-full bg-transparent py-4 pl-2 text-xl font-bold placeholder:text-on-brand/50 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
             <p className="mt-6 min-h-[3.5rem] text-lg font-medium" aria-live="polite">
-              {peso(gift.php)} {gift.text.charAt(0).toLowerCase() + gift.text.slice(1)}
+              {description}
             </p>
             <a
-              className="btn mt-2 bg-on-brand text-brand hover:opacity-90"
-              href={`mailto:${ORG.giveEmail}?subject=${encodeURIComponent(`Donation of ${peso(gift.php)}`)}`}
+              className={`btn mt-2 bg-on-brand text-brand ${amount > 0 ? "hover:opacity-90" : "pointer-events-none opacity-50"}`}
+              href={amount > 0 ? `mailto:${ORG.giveEmail}?subject=${encodeURIComponent(`Donation of ${peso(amount)}`)}` : undefined}
+              aria-disabled={amount === 0}
             >
-              Give {peso(gift.php)}
+              {amount > 0 ? `Give ${peso(amount)}` : "Enter an amount"}
             </a>
             <p className="mt-3 text-sm opacity-80">We reply within a day with bank and e-wallet details.</p>
           </div>

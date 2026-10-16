@@ -96,6 +96,7 @@ export const dogs: Dog[] = [
 ];
 
 export const gifts = [
+  { php: 100, text: "Feeds one rescued dog for two days." },
   { php: 500, text: "Vaccinates and deworms one rescued puppy." },
   { php: 1500, text: "Feeds one rescued dog for a full month." },
   { php: 3000, text: "Pays for spay or neuter surgery and aftercare." },
