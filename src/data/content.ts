@@ -89,7 +89,7 @@ export const dogs: Dog[] = [
     age: "4 years",
     size: "Large",
     story:
-      "Left outside a wet market when his owner moved abroad. She is a calm mother, a little fat, and happiest on slow morning walks. She needs a loud home and a warm place to sleep.",
+      "Left outside a wet market when her owner moved abroad. She is a calm mother, a little fat, and happiest on slow morning walks. She needs a loud home and a warm place to sleep.",
     traits: ["Has a belly rub addiction", "Good with other animals"],
     fur: "#FFE4B5",
     ear: "#F4A460",
