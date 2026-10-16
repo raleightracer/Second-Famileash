@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import DogFace from "../assets/DogFace";
 import Leash from "../assets/Leash";
@@ -11,16 +11,39 @@ const arches = [
   { bg: "#BFD9E6", h: "h-56 sm:h-80", fur: "#9AA3A8", ear: "#5E676C", muzzle: "#E4E8EA", delay: "300ms", label: "Illustration of a gray rescue dog" },
 ];
 
-const peso = (n: number) => `₱${n.toLocaleString("en-PH")}`;
+const withCommas = (n: number) => n.toLocaleString("en-PH");
+const peso = (n: number) => `₱${withCommas(n)}`;
 
 export default function Home() {
   const [selected, setSelected] = useState<number | "custom">(2);
-  const [custom, setCustom] = useState("");
+  const [custom, setCustom] = useState(""); // digits only, e.g. "2500"
 
   // Preset gift, or null when the donor is typing their own amount
   const gift = selected === "custom" ? null : gifts[selected];
-  const customAmount = Math.floor(Number(custom));
-  const amount = gift ? gift.php : customAmount > 0 ? customAmount : 0;
+  const amount = gift ? gift.php : Number(custom);
+
+  // Keep only digits (max 9), then put the cursor back beside the same digit once commas are added
+  const onCustomChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const digitsBeforeCursor = input.value.slice(0, input.selectionStart ?? undefined).replace(/\D/g, "").length;
+    setCustom(input.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9));
+    requestAnimationFrame(() => {
+      let pos = 0;
+      for (let seen = 0; pos < input.value.length && seen < digitsBeforeCursor; pos++) {
+        if (/\d/.test(input.value[pos])) seen++;
+      }
+      input.setSelectionRange(pos, pos);
+    });
+  };
+
+  // Backspace/Delete beside a comma removes the digit next to it instead of just the comma
+  const onCustomKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const pos = input.selectionStart;
+    if (pos === null || pos !== input.selectionEnd) return;
+    if (e.key === "Backspace" && input.value[pos - 1] === ",") input.setSelectionRange(pos - 1, pos - 1);
+    if (e.key === "Delete" && input.value[pos] === ",") input.setSelectionRange(pos + 1, pos + 1);
+  };
   const description = gift
     ? `${peso(gift.php)} ${gift.text.charAt(0).toLowerCase() + gift.text.slice(1)}`
     : amount > 0
@@ -181,14 +204,14 @@ export default function Home() {
                   <span className="text-xl font-bold" aria-hidden="true">₱</span>
                   <input
                     id="custom-amount"
-                    type="number"
+                    type="text"
                     inputMode="numeric"
-                    min={1}
-                    step={1}
+                    autoComplete="off"
                     placeholder="0"
                     autoFocus
-                    value={custom}
-                    onChange={(e) => setCustom(e.target.value)}
+                    value={custom && withCommas(Number(custom))}
+                    onChange={onCustomChange}
+                    onKeyDown={onCustomKeyDown}
                     className="w-full bg-transparent py-4 pl-2 text-xl font-bold placeholder:text-on-brand/50 focus:outline-none"
                   />
                 </div>
