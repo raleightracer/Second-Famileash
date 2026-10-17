@@ -122,7 +122,6 @@ export default function Home() {
     });
   };
 
-  // Backspace/Delete beside a comma removes the digit next to it instead of just the comma
   const onCustomKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
     const pos = input.selectionStart;
