@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import DogFace from "../assets/DogFace";
 import Leash from "../assets/Leash";
 import DogCard from "../components/DogCard";
+import DonateForm from "../components/DonateForm";
 import {
   ORG,
   dogs,
@@ -12,6 +13,8 @@ import {
   situations,
   steps,
 } from "../data/content";
+import { MAX_GIFT, MIN_GIFT, peso, withCommas } from "../lib/money";
+import { stripePromise } from "../lib/stripe";
 
 const arches = [
   {
@@ -43,24 +46,69 @@ const arches = [
   },
 ];
 
-const withCommas = (n: number) => n.toLocaleString("en-PH");
-const peso = (n: number) => `₱${withCommas(n)}`;
-
 export default function Home() {
   const [selected, setSelected] = useState<number | "custom">(2);
   const [custom, setCustom] = useState(""); // digits only, e.g. "2500"
+  // Set once the server has started a Stripe payment; swaps the amount picker for the card form
+  const [checkout, setCheckout] = useState<{
+    amount: number;
+    clientSecret: string;
+  } | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState("");
 
   // Preset gift, or null when the donor is typing their own amount
   const gift = selected === "custom" ? null : gifts[selected];
   const amount = gift ? gift.php : Number(custom);
+  const canGive = amount >= MIN_GIFT;
 
-  // Keep only digits (max 9), then put the cursor back beside the same digit once commas are added
+  // Ask our server (api/create-payment-intent.js) to start a Stripe payment for this amount
+  const startCheckout = async () => {
+    if (!stripePromise) {
+      setStartError("Online giving isn't set up yet. Please try again later.");
+      return;
+    }
+    setStarting(true);
+    setStartError("");
+    const data: { clientSecret?: string; error?: string } = await fetch(
+      "/api/create-payment-intent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      },
+    )
+      .then((res) => res.json())
+      .catch(() => {
+        if (import.meta.env.DEV) {
+          console.error(
+            "No answer from /api. Start the site with `npx vercel dev` instead of `npm run dev`.",
+          );
+        }
+        return {};
+      });
+    setStarting(false);
+    if (data.clientSecret) {
+      setCheckout({ amount, clientSecret: data.clientSecret });
+    } else {
+      setStartError(
+        data.error ?? "We couldn't start the payment. Please try again.",
+      );
+    }
+  };
+
+  // Keep only digits (no more than MAX_GIFT has), then put the cursor back beside the same digit once commas are added
   const onCustomChange = (e: ChangeEvent<HTMLInputElement>) => {
     const input = e.target;
     const digitsBeforeCursor = input.value
       .slice(0, input.selectionStart ?? undefined)
       .replace(/\D/g, "").length;
-    setCustom(input.value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9));
+    setCustom(
+      input.value
+        .replace(/\D/g, "")
+        .replace(/^0+/, "")
+        .slice(0, String(MAX_GIFT).length),
+    );
     requestAnimationFrame(() => {
       let pos = 0;
       for (
@@ -86,9 +134,11 @@ export default function Home() {
   };
   const description = gift
     ? `${peso(gift.php)} ${gift.text.charAt(0).toLowerCase() + gift.text.slice(1)}`
-    : amount > 0
+    : canGive
       ? `${peso(amount)} goes to food, medicine, and surgery for the dogs in our care.`
-      : "Type any amount. Every peso goes to food, medicine, and surgery for the dogs in our care.";
+      : amount > 0
+        ? `The smallest gift we can take online is ${peso(MIN_GIFT)}.`
+        : `Type any amount from ${peso(MIN_GIFT)}. Every peso goes to food, medicine, and surgery for the dogs in our care.`;
 
   const choiceClass = (active: boolean) =>
     `rounded-2xl border-2 px-4 py-4 text-xl font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/70 ${
@@ -253,80 +303,100 @@ export default function Home() {
               medicine, and surgery for the dogs in our care.
             </p>
 
-            <div
-              className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3"
-              role="group"
-              aria-label="Donation amount"
-            >
-              {gifts.map((g, i) => (
-                <button
-                  key={g.php}
-                  type="button"
-                  aria-pressed={i === selected}
-                  onClick={() => setSelected(i)}
-                  className={choiceClass(i === selected)}
-                >
-                  {peso(g.php)}
-                </button>
-              ))}
-              <button
-                type="button"
-                aria-pressed={selected === "custom"}
-                onClick={() => setSelected("custom")}
-                className={choiceClass(selected === "custom")}
-              >
-                Custom
-              </button>
-            </div>
-
-            {selected === "custom" && (
-              <div className="mt-4">
-                <label
-                  htmlFor="custom-amount"
-                  className="text-sm font-semibold opacity-85"
-                >
-                  Your amount
-                </label>
-                <div className="mt-2 flex items-center rounded-2xl border-2 border-on-brand/30 px-4 focus-within:border-on-brand/70 focus-within:ring-4 focus-within:ring-accent/70">
-                  <span className="text-xl font-bold" aria-hidden="true">
-                    ₱
-                  </span>
-                  <input
-                    id="custom-amount"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="0"
-                    autoFocus
-                    value={custom && withCommas(Number(custom))}
-                    onChange={onCustomChange}
-                    onKeyDown={onCustomKeyDown}
-                    className="w-full bg-transparent py-4 pl-2 text-xl font-bold placeholder:text-on-brand/50 focus:outline-none"
-                  />
-                </div>
+            {checkout ? (
+              <div className="mt-8">
+                <DonateForm
+                  amount={checkout.amount}
+                  clientSecret={checkout.clientSecret}
+                  onCancel={() => setCheckout(null)}
+                />
               </div>
-            )}
+            ) : (
+              <>
+                <div
+                  className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3"
+                  role="group"
+                  aria-label="Donation amount"
+                >
+                  {gifts.map((g, i) => (
+                    <button
+                      key={g.php}
+                      type="button"
+                      aria-pressed={i === selected}
+                      onClick={() => setSelected(i)}
+                      className={choiceClass(i === selected)}
+                    >
+                      {peso(g.php)}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    aria-pressed={selected === "custom"}
+                    onClick={() => setSelected("custom")}
+                    className={choiceClass(selected === "custom")}
+                  >
+                    Custom
+                  </button>
+                </div>
 
-            <p
-              className="mt-6 min-h-[3.5rem] text-lg font-medium"
-              aria-live="polite"
-            >
-              {description}
-            </p>
-            <a
-              className={`btn mt-2 bg-on-brand text-brand ${amount > 0 ? "hover:opacity-90" : "pointer-events-none opacity-50"}`}
-              href={
-                amount > 0
-                  ? `mailto:${ORG.giveEmail}?subject=${encodeURIComponent(`Donation of ${peso(amount)}`)}`
-                  : undefined
-              }
-              aria-disabled={amount === 0}
-            >
-              {amount > 0 ? `Give ${peso(amount)}` : "Enter an amount"}
-            </a>
-            <p className="mt-3 text-sm opacity-80">
-              We reply within a day with bank and e-wallet details.
-            </p>
+                {selected === "custom" && (
+                  <div className="mt-4">
+                    <label
+                      htmlFor="custom-amount"
+                      className="text-sm font-semibold opacity-85"
+                    >
+                      Your amount
+                    </label>
+                    <div className="mt-2 flex items-center rounded-2xl border-2 border-on-brand/30 px-4 focus-within:border-on-brand/70 focus-within:ring-4 focus-within:ring-accent/70">
+                      <span className="text-xl font-bold" aria-hidden="true">
+                        ₱
+                      </span>
+                      <input
+                        id="custom-amount"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder="0"
+                        autoFocus
+                        value={custom && withCommas(Number(custom))}
+                        onChange={onCustomChange}
+                        onKeyDown={onCustomKeyDown}
+                        className="w-full bg-transparent py-4 pl-2 text-xl font-bold placeholder:text-on-brand/50 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <p
+                  className="mt-6 min-h-[3.5rem] text-lg font-medium"
+                  aria-live="polite"
+                >
+                  {description}
+                </p>
+                <button
+                  type="button"
+                  onClick={startCheckout}
+                  disabled={!canGive || starting}
+                  className="btn mt-2 bg-on-brand text-brand hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {starting
+                    ? "Starting…"
+                    : canGive
+                      ? `Give ${peso(amount)}`
+                      : amount > 0
+                        ? `Minimum is ${peso(MIN_GIFT)}`
+                        : "Enter an amount"}
+                </button>
+                {startError && (
+                  <p role="alert" className="mt-3 font-semibold">
+                    {startError}
+                  </p>
+                )}
+                <p className="mt-3 text-sm opacity-80">
+                  Card payments are handled securely by Stripe.
+                </p>
+              </>
+            )}
           </div>
 
           <ul className="grid gap-4 self-start">

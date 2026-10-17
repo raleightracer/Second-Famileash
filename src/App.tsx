@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import About from "./pages/About";
+import ThankYou from "./pages/ThankYou";
 
 /** Scrolls to the #section in the URL, or back to the top on a new page. */
 function ScrollManager() {
@@ -33,6 +34,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/thank-you" element={<ThankYou />} />
           <Route path="*" element={<Home />} />
         </Routes>
       </main>
