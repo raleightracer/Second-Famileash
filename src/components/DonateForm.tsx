@@ -11,7 +11,6 @@ import { peso } from "../lib/money";
 import { stripePromise } from "../lib/stripe";
 import { useTheme } from "../theme/ThemeContext";
 
-// Stripe's card form runs in an iframe and can't read our CSS tokens, so these mirror src/index.css
 const palette = {
   light: {
     primary: "#1E4A43",
@@ -90,7 +89,6 @@ function CheckoutForm({ amount, clientSecret, onCancel }: DonateFormProps) {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
 
-  // The Give button that opened this form is gone, so move focus here
   useEffect(() => heading.current?.focus(), []);
 
   const onSubmit = async (e: FormEvent) => {
@@ -118,7 +116,10 @@ function CheckoutForm({ amount, clientSecret, onCancel }: DonateFormProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="rounded-3xl bg-surface p-6 text-ink sm:p-8">
+    <form
+      onSubmit={onSubmit}
+      className="rounded-3xl bg-surface p-6 text-ink sm:p-8"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h3
           ref={heading}
@@ -149,7 +150,10 @@ function CheckoutForm({ amount, clientSecret, onCancel }: DonateFormProps) {
       )}
 
       {error && (
-        <p role="alert" className="mt-4 font-medium text-red-700 dark:text-red-400">
+        <p
+          role="alert"
+          className="mt-4 font-medium text-red-700 dark:text-red-400"
+        >
           {error}
         </p>
       )}
@@ -162,8 +166,8 @@ function CheckoutForm({ amount, clientSecret, onCancel }: DonateFormProps) {
         {paying ? "Processing…" : `Give ${peso(amount)}`}
       </button>
       <p className="mt-4 text-sm text-muted">
-        This is a demo, so no real money moves. Pay with the test card 4242
-        4242 4242 4242, any future date, and any CVC.
+        This is a demo, so no real money moves. Pay with the test card 4242 4242
+        4242 4242, any future date, and any CVC.
       </p>
     </form>
   );
