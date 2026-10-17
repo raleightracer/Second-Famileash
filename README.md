@@ -39,6 +39,6 @@ Test payments appear in the Stripe Dashboard under Payments.
 - `src/data/content.ts`: all site copy, in one place
 - `src/pages/Home.tsx`, `src/pages/About.tsx`, `src/pages/ThankYou.tsx`
 - `src/components/DonateForm.tsx`, `src/lib/stripe.ts`, `api/create-payment-intent.js`: donations
-- `vercel.json`: sends every page URL (like `/about` and `/thank-you`) to the React app on Vercel
+- `vercel.json`: sends each page URL (`/about`, `/thank-you`) to the React app on Vercel. Add new pages here too. A catch-all rule would also catch Vite's own files under `vercel dev` and leave a white page.
 
 All names, numbers, and email addresses are sample content for a fictional organization. Replace them in `content.ts` before launch.
